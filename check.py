@@ -3,6 +3,11 @@ import imaplib
 import os
 import html2text
 import time
+from lxml import etree
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 detach_dir = 'locationWhereYouWantToSaveYourAttachments'
 
 
@@ -24,21 +29,6 @@ def two_way_email(server,uname,pwd):
             result2, email_data = mail.fetch(i, '(RFC822)')
             raw_email = email_data[0][1].decode("UTF-8")
             email_message = email.message_from_string(raw_email)
-
-            for part in email_message.walk():
-                if part.get_content_maintype() == 'multipart':
-                    continue
-                if part.get('Content-Disposition') is None:
-                    continue
-
-                filename = part.get_filename()
-                att_path = os.path.join(detach_dir, filename)
-
-                if not os.path.isfile(att_path):
-                    fp = open(att_path, 'wb')
-                    fp.write(part.get_payload(decode=True))
-                    fp.close()
-                    print('Downloaded file:', filename)
             if('Receipt' in email_message['Subject']):
                 if email_message.is_multipart():
                     for payload in email_message.get_payload():
@@ -50,9 +40,15 @@ def two_way_email(server,uname,pwd):
                             if (part.get_content_type() == 'text/plain'):
                                 continue
                             elif(part.get_content_type()=='text/html'):
-                                print('Body2:\t',part.get_content_type())
+                                #print('Body2:\t',part.get_content_type())
                                 #print('Body2:\t',part.get_payload(None,True))
-                                print(part.get_payload(None,True).decode("utf-8"))
+                                #print(part.get_payload(None,True).decode("utf-8"))
+                                strHTML = part.get_payload(None,True).decode("utf-8")
+                                #print(strHTML.find('TOTAL'))
+                                #print(strHTML)
+                                dom = etree.HTML(strHTML)
+                                a_tag_text = dom.xpath('body/table/tr/td/table/tr/td/table[2]/tr/td[2]/table/tr[4]/td/table[1]/tr/td/span/text()')
+                                print(a_tag_text[0])
 
                         break
                 else:
